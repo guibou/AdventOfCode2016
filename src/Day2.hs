@@ -96,11 +96,16 @@ getValue f init xs = foldl (flip f) init xs
 
 genericDay keypadF code = tail (scanl (getValue keypadF) 5 code)
 
+
 -- FIRST problem
 day code = genericDay keyPad code
 -- SECOND problem
 
 day' code = genericDay keyPad' code
+
+-- Formatting (done after finishing)
+format xs = map f xs
+  where f i = (['0'..'9'] ++ ['A'..'D']) !! i
 
 -- tests and data
 
@@ -113,16 +118,16 @@ testData = [[U, L],
 test = hspec $ do
   describe "firstProblem" $ do
     it "works" $ do
-      day testData `shouldBe` [1, 9, 8, 5]
+      format (day testData) `shouldBe` "1985"
       --day 1 `shouldBe` (2 :: Int)
   describe "secondProblem" $ do
     it "works" $ do
-      day' testData `shouldBe` [5, 13, 11, 3]
+      format (day' testData) `shouldBe` "5DB3"
 
   describe "finally" $ do
     it "works" $ do
-      fmap (fmap day) content `shouldReturn` (Right [4, 7, 9, 7, 8])
-      fmap (fmap day') content `shouldReturn` (Right [6, 5, 9, 10, 13])
+      fmap (fmap (format . day)) content `shouldReturn` (Right "47978")
+      fmap (fmap (format . day')) content `shouldReturn` (Right "659AD")
 
 fileContent = readFile "content/day2"
 content = parse <$> fileContent
