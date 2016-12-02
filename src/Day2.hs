@@ -21,91 +21,48 @@ parserInstruction = (U <$ P.string "U") P.<|>
                     (R <$ P.string "R")
 
 -- Problem DSL
-keyPad :: Instruction -> Int -> Int
-keyPad U 1 = 1
-keyPad U 2 = 2
-keyPad U 3 = 3
-keyPad U x = x - 3
-keyPad D 7 = 7
-keyPad D 8 = 8
-keyPad D 9 = 9
-keyPad D x = x + 3
-keyPad L 1 = 1
-keyPad L 4 = 4
-keyPad L 7 = 7
-keyPad L x = x - 1
-keyPad R 3 = 3
-keyPad R 6 = 6
-keyPad R 9 = 9
-keyPad R x = x + 1
 
+data KeyPad = KeyPad [[Char]] deriving (Show)
 
-{-  1
-  2 3 4
-5 6 7 8 9
-  A B C
-    D
--}
+data Status = Status KeyPad (Int, Int) deriving (Show)
 
-keyPad' :: Instruction -> Int -> Int
-keyPad' L v
-  | v `elem` [1, 2, 5, 10, 13] = v
-  | otherwise = v - 1
-keyPad' R v
-  | v `elem` [1, 4, 9, 12, 13] = v
-  | otherwise = v + 1
-keyPad' D 1 = 3
+makeKeyPad s coord = Status (KeyPad (lines s)) coord
 
-keyPad' D 2 = 6
-keyPad' D 3 = 7
-keyPad' D 4 = 8
+validCase k@(KeyPad s) (x, y) = y >= 0 && y < length s && x >= 0 && x < length (s !! y) && getKeyPad k (x, y) /= ' '
 
-keyPad' D 5 = 5
-keyPad' D 6 = 10
-keyPad' D 7 = 11
-keyPad' D 8 = 12
-keyPad' D 9 = 9
+getKeyPad keyPad@(KeyPad s) (x, y) = s !! y !! x
+getStatus (Status keyPad coord) = getKeyPad keyPad coord
 
-keyPad' D 10 = 10
-keyPad' D 11 = 13
-keyPad' D 12 = 12
+moveKeyPad i (Status keyPad (x, y)) = Status keyPad (if validCase keyPad newCoord then newCoord else (x, y))
+  where newCoord = case i of
+          U -> (x, y - 1)
+          D -> (x, y + 1)
+          L -> (x - 1, y)
+          R -> (x + 1, y)
 
-keyPad' D 13 = 13
---
-keyPad' U 1 = 1
+keyPad = makeKeyPad "123\n\
+                    \456\n\
+                    \789" (1, 1)
 
-keyPad' U 2 = 2
-keyPad' U 3 = 1
-keyPad' U 4 = 4
-
-keyPad' U 5 = 5
-keyPad' U 6 = 2
-keyPad' U 7 = 3
-keyPad' U 8 = 4
-keyPad' U 9 = 9
-
-keyPad' U 10 = 6
-keyPad' U 11 = 7
-keyPad' U 12 = 8
-
-keyPad' U 13 = 11
+keyPad' = makeKeyPad "  1  \n\
+                     \ 234 \n\
+                     \56789\n\
+                     \ ABC \n\
+                     \  D   " (0, 2)
 
 -- utils
 
-getValue f init xs = foldl (flip f) init xs
+foldInstruction :: Status -> [Instruction] -> Status
+foldInstruction keyPad xs = foldl (flip moveKeyPad) keyPad xs
 
-genericDay keypadF code = tail (scanl (getValue keypadF) 5 code)
-
+genericDay :: Status -> [[Instruction]] -> [Char]
+genericDay keypad code = map getStatus (tail (scanl foldInstruction keypad code))
 
 -- FIRST problem
 day code = genericDay keyPad code
 -- SECOND problem
 
 day' code = genericDay keyPad' code
-
--- Formatting (done after finishing)
-format xs = map f xs
-  where f i = (['0'..'9'] ++ ['A'..'D']) !! i
 
 -- tests and data
 
@@ -118,16 +75,16 @@ testData = [[U, L],
 test = hspec $ do
   describe "firstProblem" $ do
     it "works" $ do
-      format (day testData) `shouldBe` "1985"
+      day testData `shouldBe` "1985"
       --day 1 `shouldBe` (2 :: Int)
   describe "secondProblem" $ do
     it "works" $ do
-      format (day' testData) `shouldBe` "5DB3"
+      day' testData `shouldBe` "5DB3"
 
   describe "finally" $ do
     it "works" $ do
-      fmap (fmap (format . day)) content `shouldReturn` (Right "47978")
-      fmap (fmap (format . day')) content `shouldReturn` (Right "659AD")
+      fmap (fmap day) content `shouldReturn` (Right "47978")
+      fmap (fmap day') content `shouldReturn` (Right "659AD")
 
 fileContent = readFile "content/day2"
 content = parse <$> fileContent
