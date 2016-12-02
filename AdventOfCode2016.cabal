@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Utils, DayX, Day1
+  exposed-modules:     Utils, DayX, Day1, Day2
   build-depends:       base >= 4.7 && < 5,
                        hspec,
                        megaparsec
