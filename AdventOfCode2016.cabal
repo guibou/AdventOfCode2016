@@ -18,7 +18,8 @@ library
   exposed-modules:     Utils, DayX, Day1, Day2, Day2Golf, Day3
   build-depends:       base >= 4.7 && < 5,
                        hspec,
-                       megaparsec
+                       megaparsec,
+                       split
 
   default-language:    Haskell2010
 

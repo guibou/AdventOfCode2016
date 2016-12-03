@@ -6,6 +6,8 @@ import Test.Hspec
 import qualified Text.Megaparsec.String as P
 import qualified Text.Megaparsec as P
 
+import Utils
+
 -- Input DSL
 
 data Instruction = Instruction Rotate Int deriving (Show)
@@ -30,13 +32,9 @@ data Position = Position Heading (Int, Int) deriving (Show, Eq)
 
 startingPoint = Position North (0, 0)
 
-changeHeading LEFT h
-  | h == minBound = maxBound
-  | otherwise = pred h
-changeHeading RIGHT h
-  | h == maxBound = minBound
-  | otherwise = succ h
-changeHeading NO h = h
+changeHeading LEFT = predWrap
+changeHeading RIGHT = succWrap
+changeHeading NO = id
 
 deltaMove North v = (v, 0)
 deltaMove South v = (-v, 0)

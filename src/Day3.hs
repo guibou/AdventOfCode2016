@@ -4,11 +4,10 @@ import Test.Hspec
 
 import Data.List (sort, transpose)
 
-parse :: String -> [[Integer]]
-parse s = pack3 (map read (words s))
+import Data.List.Split (chunksOf)
 
-pack3 [] = []
-pack3 (x:y:z:xs) = [x, y, z]:pack3 xs
+parse :: String -> [[Integer]]
+parse = chunksOf 3 . map read . words
 
 -- Problem DSL
 
@@ -24,7 +23,7 @@ day = score
 
 -- SECOND problem
 
-tr code = pack3 (mconcat (transpose code))
+tr = chunksOf 3 . mconcat . transpose
 
 day' = score . tr
 
