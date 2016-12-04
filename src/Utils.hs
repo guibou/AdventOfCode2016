@@ -30,3 +30,5 @@ nWrap :: forall t. (Enum t, Bounded t) => Int -> t -> t
 nWrap d e = let idx = fromEnum e
                 m = (fromEnum (maxBound :: t)) + 1
             in toEnum ((idx + d) `mod` m)
+
+count x l = length (filter (==x) l)
