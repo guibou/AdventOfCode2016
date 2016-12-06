@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Utils, DayX, Day1, Day2, Day2Golf, Day3, Day4, Day5, Day6
+  exposed-modules:     Utils, Day1, Day2, Day2Golf, Day3, Day4, Day5, Day6
   build-depends:       base >= 4.7 && < 5,
                        hspec,
                        megaparsec,
@@ -23,7 +23,8 @@ library
                        safe,
                        cryptohash,
                        base16-bytestring,
-                       bytestring
+                       bytestring,
+                       parallel
 
   default-language:    Haskell2010
 

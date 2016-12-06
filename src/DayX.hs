@@ -28,13 +28,8 @@ day' code = code * 2
 
 -- tests and data
 
-test = hspec $ do
-  describe "firstProblem" $ do
-    it "works" $ do
-      day 1 `shouldBe` (1 :: Int)
-  describe "secondProblem" $ do
-    it "works" $ do
-      day' 2 `shouldBe` 4
+-- comment out and add tests
+-- test = hspec $ it "works" $ do
 
 fileContent = readFile "content/dayX"
 content = parse <$> fileContent
