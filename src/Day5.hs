@@ -10,7 +10,7 @@ import qualified Data.ByteString.Char8 as BS
 import Data.List (find)
 
 import Data.Monoid ((<>))
-import Data.Char (chr)
+import Data.Char (ord)
 
 import Data.ByteString.Base16
 
@@ -34,10 +34,16 @@ day code = let
 -- SECOND problem
 day' code = let
   codes = allChars code
-  in take 8 (map (findOffset codes) [0..7])
+  offsets = getOffsets codes
+  in take 8 (map (findOffset offsets) [0..7])
 
-findOffset l i = let Just s = find (\x -> (BS.index x 5) == chr (i + 48)) l
-                 in BS.index s 6
+findOffset l o = let Just (v, _) = find (\(v, o') -> o == o') l
+                 in v
+
+getOffsets (x:xs)
+  | v >= '0' && v <= '9' = (BS.index x 6, (ord v - 48)) : getOffsets xs
+  | otherwise = getOffsets xs
+  where v = BS.index x 5
 
 -- tests and data
 
