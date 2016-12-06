@@ -8,17 +8,18 @@ import Safe (readMay)
 
 -- Problem DSL
 ids idx = map (\x -> idx ++ show x) [0..]
-allMd5 idx = map (\x -> (x, (md5s . Str) x)) (ids idx)
+
+allMd5 idx = map (md5s . Str) (ids idx)
 
 isChar x = "00000" `isPrefixOf` x
 -- utils
 
-allChars idx = filter (isChar . snd) (allMd5 idx)
+allChars idx = filter isChar (allMd5 idx)
 
 -- FIRST problem
 day code = let
   codes = allChars code
-  chars = map ((!!5) . snd) codes
+  chars = map (!!5) codes
 
   in take 8 chars
 
