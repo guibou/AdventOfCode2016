@@ -1,17 +1,25 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Day5 where
 
 import Test.Hspec
 
-import Data.Hash.MD5
-import Data.List (isPrefixOf, find)
-import Safe (readMay)
+import Crypto.Hash.MD5
+
+import qualified Data.ByteString.Char8 as BS
+
+import Data.List (find)
+
+import Data.Monoid ((<>))
+import Data.Char (chr)
+
+import Data.ByteString.Base16
 
 -- Problem DSL
-ids idx = map (\x -> idx ++ show x) [0..]
+ids idx = map (\x -> idx <> (BS.pack (show x))) [0..]
 
-allMd5 idx = map (md5s . Str) (ids idx)
+allMd5 idx = map (encode . (BS.take 4 . hash)) (ids idx)
 
-isChar x = "00000" `isPrefixOf` x
+isChar x = "00000" `BS.isPrefixOf` x
 -- utils
 
 allChars idx = filter isChar (allMd5 idx)
@@ -19,7 +27,7 @@ allChars idx = filter isChar (allMd5 idx)
 -- FIRST problem
 day code = let
   codes = allChars code
-  chars = map (!!5) codes
+  chars = map (flip BS.index 5) codes
 
   in take 8 chars
 
@@ -28,12 +36,8 @@ day' code = let
   codes = allChars code
   in take 8 (map (findOffset codes) [0..7])
 
-findOffset :: [String] -> Int -> Char
-findOffset l i = let Just s = find (\x -> case readMay (x !! 5 : []) of
-                                       Just i' -> i == i'
-                                       Nothing -> False)
-                                     l
-                 in s !! 6
+findOffset l i = let Just s = find (\x -> (BS.index x 5) == chr (i + 48)) l
+                 in BS.index s 6
 
 -- tests and data
 

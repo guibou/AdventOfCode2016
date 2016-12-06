@@ -21,7 +21,9 @@ library
                        megaparsec,
                        split,
                        safe,
-                       MissingH
+                       cryptohash,
+                       base16-bytestring,
+                       bytestring
 
   default-language:    Haskell2010
 
