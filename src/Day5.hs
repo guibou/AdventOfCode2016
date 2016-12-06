@@ -20,12 +20,12 @@ day code = let
   codes = allChars code
   chars = map ((!!5) . snd) codes
 
-  in chars
+  in take 8 chars
 
 -- SECOND problem
 day' code = let
   codes = allChars code
-  in map (findOffset (map snd codes)) [0..7]
+  in take 8 (map (findOffset codes) [0..7])
 
 findOffset :: [String] -> Int -> Char
 findOffset l i = let Just s = find (\x -> case readMay (x !! 5 : []) of
