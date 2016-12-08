@@ -1,6 +1,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Utils where
 
+import qualified Text.Megaparsec.String as P
+import qualified Text.Megaparsec as P
+
+
 -- So I can use it in the shell
 -- dayX <$$> content
 
@@ -32,3 +36,11 @@ nWrap d e = let idx = fromEnum e
             in toEnum ((idx + d) `mod` m)
 
 count x l = length (filter (==x) l)
+
+
+-- | Wrapper around parse, to avoid the Right unpacking which is painful
+-- in a competitive context
+parse :: P.Parser t -> String -> t
+parse parser s = case P.parse parser "" s of
+  Right r -> r
+  Left err -> error (show err)

@@ -2,6 +2,8 @@ module Day2 where
 
 import Test.Hspec
 
+import Utils
+
 import qualified Text.Megaparsec.String as P
 import qualified Text.Megaparsec as P
 
@@ -9,8 +11,6 @@ import qualified Text.Megaparsec as P
 data Instruction = U | D | L | R deriving (Show)
 
 -- Parsing
-parse s = P.parse parser "" s
-
 parser :: P.Parser [[Instruction]]
 parser = P.sepBy (P.many (parserInstruction)) (P.string "\n")
 
@@ -83,8 +83,8 @@ test = hspec $ do
 
   describe "finally" $ do
     it "works" $ do
-      fmap (fmap day) content `shouldReturn` (Right "47978")
-      fmap (fmap day') content `shouldReturn` (Right "659AD")
+      day <$> content `shouldReturn` "47978"
+      day' <$> content `shouldReturn` "659AD"
 
 fileContent = readFile "content/day2"
-content = parse <$> fileContent
+content = parse parser <$> fileContent

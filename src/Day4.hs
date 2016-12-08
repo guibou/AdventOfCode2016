@@ -21,9 +21,9 @@ data Room = Room {
 
 -- Parsing
 
-parse s = P.parse (P.sepBy parser (P.char '\n')) "" s
+parser = P.sepBy parseRoom (P.char '\n')
 
-parser = do
+parseRoom = do
   name <- intercalate "-" <$> P.many (parseName <* P.char '-')
   sectorID <- parseSectorID
 
@@ -69,12 +69,12 @@ day' code = let Just r = find (\x -> realName x == "northpole object storage") c
 
 test = hspec $ do
   it "works" $ do
-    day <$$> content `shouldReturn` Right 278221
-    day' <$$> content `shouldReturn` Right 267
+    day <$> content `shouldReturn` 278221
+    day' <$> content `shouldReturn` 267
 
   it "rotates" $ do
     realName (Room "qzmt-zixmtkozy-ivhz" 343 undefined) `shouldBe` "very encrypted name"
   --parse "aaaaa-bbb-z-y-x-123[abxyz]" `shouldBe` Right (["aaaaa", "bbb", "z", "y", "x"], 123, "abxyz")
 
 fileContent = readFile "content/day4"
-content = parse <$> fileContent
+content = parse parser <$> fileContent

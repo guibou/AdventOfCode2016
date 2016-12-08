@@ -5,13 +5,12 @@ import Test.Hspec
 import qualified Text.Megaparsec.String as P
 import qualified Text.Megaparsec as P
 
--- Input DSL
+import Utils
 
 -- Parsing
-
-parse s = P.parse parser "" s
-
 parser = undefined
+
+-- Input DSL
 
 
 -- Problem DSL
@@ -32,4 +31,4 @@ day' code = code * 2
 -- test = hspec $ it "works" $ do
 
 fileContent = readFile "content/dayX"
-content = parse <$> fileContent
+content = parse parser <$> fileContent

@@ -15,8 +15,6 @@ data Rotate = RIGHT | LEFT | NO deriving (Show)
 
 -- Parsing
 
-parse s = P.parse parser "" s
-
 parser = P.sepBy pInstruction (P.string ", ")
 
 pInstruction :: P.Parser Instruction
@@ -88,5 +86,5 @@ test = hspec $ do
       day' [R 8, R 4, R 4, R 8] `shouldBe` 4
 
 fileContent = readFile "content/day1"
-content = parse <$> fileContent
+content = parse parser <$> fileContent
 

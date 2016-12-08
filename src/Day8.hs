@@ -9,11 +9,6 @@ import Utils
 import Data.Functor (($>))
 
 -- Parsing
-
-parse s = case P.parse parser "" s of
-  Right r -> r
-  Left err -> error (show err)
-
 parser = parseLine `P.sepBy` (P.string "\n") <* P.eof
 
 parseLine = (P.try parseRect) P.<|> parseRotate
@@ -112,4 +107,4 @@ test = hspec $ it "works" $ do
 testLine = [Rect 3 2, RotateCol 1 1, RotateRow 0 4, RotateCol 1 1]
 
 fileContent = readFile "content/day8"
-content = parse <$> fileContent
+content = parse parser <$> fileContent
