@@ -7,6 +7,7 @@ import qualified Text.Megaparsec as P
 
 import Utils
 import Data.Functor (($>))
+import Data.Matrix
 
 -- Parsing
 parser = parseLine `P.sepBy` (P.string "\n") <* P.eof
@@ -43,57 +44,48 @@ data Command = Rect Int Int
 
 
 -- Problem DSL
-data Matrix = Matrix [[Bool]]
+newtype Display = Display (Matrix Bool)
+
+instance Show Display where
+  show (Display m) = unlines (map (map f) (toLists m))
+    where f False = '.'
+          f True = '#'
 
 nRows = 6
 nCols = 50
 
-disp (Matrix m) = unlines (map (map f) m)
-  where f True = '#'
-        f False = '.'
+build = Display . matrix nRows nCols
+emptyMatrix = build (const False)
 
-instance Show Matrix where
-  show = disp
-
-newMatrix = Matrix (replicate nRows (replicate nCols False))
-
-genMatrix f = Matrix l'
-  where l' = map (\row -> map (\col -> f (row, col)) [0 .. (nCols - 1)]) [0..(nRows - 1)]
-
-getItem (Matrix m) (row, col) = ((m !! row) !! col)
-
-copyMatrix m = genMatrix f
-  where f = getItem m
+mod' x n = ((x - 1) `mod` n) + 1
 
 -- real functions
 
-rectMatrix x y m = genMatrix f
+rectMatrix x y (Display m) = build f
   where f (row, col)
-          | row < y && col < x = True
-          | otherwise = getItem m (row, col)
+          | row <= y && col <= x = True
+          | otherwise = getElem row col m
 
-rotateColumn col' n m = genMatrix f
+rotateColumn col' n (Display m) = build f
   where f (row, col)
-          | col' == col = getItem m ((row - n) `mod` nRows, col)
-          | otherwise = getItem m (row, col)
+          | (col' + 1) == col = getElem ((row - n) `mod'` nRows) col m
+          | otherwise = getElem row col m
 
-rotateRow row' n m = genMatrix f
+rotateRow row' n (Display m) = build f
   where f (row, col)
-          | row' == row = getItem m (row, (col - n) `mod` nCols)
-          | otherwise = getItem m (row, col)
+          | (row' + 1) == row = getElem row ((col - n) `mod'` nCols) m
+          | otherwise = getElem row col m
 
 -- utils
-apply :: Command -> Matrix -> Matrix
 apply (Rect x y) = rectMatrix x y
 apply (RotateRow x y) = rotateRow x y
 apply (RotateCol x y) = rotateColumn x y
 
-applyS :: [Command] -> Matrix
-applyS cmds = foldl (flip apply) newMatrix cmds
+applyS cmds = foldl (flip apply) emptyMatrix cmds
 
 -- FIRST problem
-day code = let (Matrix m) = applyS code
-           in count True (mconcat m)
+day code = let (Display m) = applyS code
+           in count True (toList m)
 
 -- SECOND problem
 day' code = code * 2
