@@ -1,3 +1,6 @@
+{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+{-# OPTIONS_GHC -fwarn-incomplete-uni-patterns #-}
 module DayX where
 
 import Test.Hspec
