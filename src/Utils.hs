@@ -4,6 +4,9 @@ module Utils where
 import qualified Text.Megaparsec.String as P
 import qualified Text.Megaparsec as P
 
+import qualified Data.Set as Set
+import Data.Set (Set)
+
 
 -- So I can use it in the shell
 -- dayX <$$> content
@@ -44,3 +47,12 @@ parse :: P.Parser t -> String -> t
 parse parser s = case P.parse parser "" s of
   Right r -> r
   Left err -> error (show err)
+
+bfs :: Ord p => (Set p -> Set p -> Int -> Bool) -> p -> (p -> [p]) -> (Set p, Set p, Int)
+bfs stopCriterion start stepFunction = go (Set.singleton start) (Set.empty) 0
+  where go todos visited depth
+          | stopCriterion todos visited depth = (todos, visited, depth)
+          | otherwise = let newSteps = Set.fromList (mconcat (map stepFunction (Set.toList todos)))
+                            okSteps = Set.difference newSteps visited
+
+                        in go okSteps (Set.union todos visited) (depth + 1)

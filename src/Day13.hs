@@ -10,73 +10,51 @@ import Data.Bits
 import Control.Monad (guard)
 import qualified Data.Set as Set
 
+import Utils
+
 -- Input DSL
 
 
--- Problem DSL
-
-
 -- utils
-isWall :: (Int, Int) -> Int -> Bool
-isWall (x, y) input = let res = x * x + 3 * x + 2 * x * y + y + y * y
-                          res' = res + input
-                          c = popCount res'
-                      in odd c
+isWall :: Int -> (Int, Int) -> Bool
+isWall key (x, y) = let res = x * x + 3 * x + 2 * x * y + y + y * y
+                        res' = res + key
+                        c = popCount res'
+                    in odd c
 
 type Pos = (Int, Int)
-
-pathFinder :: Pos -> Pos -> Int -> Int
-pathFinder target start key = go (Set.singleton start) (Set.empty) 0
-  where go todos visited depth
-          | target `Set.member` todos = depth
-          | otherwise = let newSteps = Set.fromList (filter (not . isWall') (mconcat (map step (Set.toList todos))))
-                            okSteps = Set.difference newSteps visited
-
-                        in go okSteps (Set.union todos visited) (depth + 1)
-        isWall' x = isWall x key
-        step (x, y) = do
-              (dx, dy) <- [(-1, 0), (1, 0), (0, 1), (0, -1)]
-
-              let x' = x + dx
-                  y' = y + dy
-
-              guard $ x' >= 0 && y' >= 0
-              guard $ x' /= x || y' /= y
-              return (x', y')
-
-pathFinder' :: Int -> Pos -> Int -> Int
-pathFinder' maxDepth start key = go (Set.singleton start) (Set.empty) 0
-  where go todos visited depth
-          | depth == maxDepth = length visited + length todos
-          | otherwise = let newSteps = Set.fromList (filter (not . isWall') (mconcat (map step (Set.toList todos))))
-                            okSteps = Set.difference newSteps visited
-
-                        in go okSteps (Set.union todos visited) (depth + 1)
-        isWall' x = isWall x key
-        step (x, y) = do
-              (dx, dy) <- [(-1, 0), (1, 0), (0, 1), (0, -1)]
-
-              let x' = x + dx
-                  y' = y + dy
-
-              guard $ x' >= 0 && y' >= 0
-              guard $ x' /= x || y' /= y
-              return (x', y')
 
 drawWall key = unlines $ do
   y <- [0 .. 6]
   return $ do
     x <- [0 .. 9]
 
-    return $ if isWall (x, y) key
+    return $ if isWall key (x, y)
              then '#'
              else '.'
 
+stepFunction :: Int -> Pos -> [Pos]
+stepFunction key (x, y) = filter (not . isWall key) $ do
+              (dx, dy) <- [(-1, 0), (1, 0), (0, 1), (0, -1)]
+
+              let x' = x + dx
+                  y' = y + dy
+
+              guard $ x' >= 0 && y' >= 0
+              guard $ x' /= x || y' /= y
+              return (x', y')
+
 -- FIRST problem
-day key = pathFinder (31, 39) (1, 1) key
+day key = let (_, _, d) = bfs sc (1, 1) steps
+          in d
+  where sc todos _ _ = (31, 39) `Set.member` todos
+        steps = stepFunction key
 
 -- SECOND problem
-day' key = pathFinder' 50 (1, 1) key
+day' key = let (a, b, _) = bfs sc (1, 1) steps
+           in length a + length b
+  where sc _ _ depth = depth == 50
+        steps = stepFunction key
 
 -- tests and data
 
@@ -88,8 +66,8 @@ content = 1352 :: Int
 
 -- comment out and add tests
 test = hspec $ it "works" $ do
-  isWall (3, 5) 10 `shouldBe` True
-  isWall (6, 5) 10 `shouldBe` False
+  isWall 10 (3, 5) `shouldBe` True
+  isWall 10 (6, 5) `shouldBe` False
 
   drawWall 10 `shouldBe` "\
 \.#.####.##\n\
