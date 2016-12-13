@@ -14,10 +14,16 @@ import Data.Char (ord)
 
 import Data.ByteString.Base16
 
+import Control.Parallel.Strategies
+import Data.List.Split
+
+parBufferChunks l = let chunks = (chunksOf 4096 l)-- `using` parBuffer 20 rdeepseq
+                    in mconcat chunks
+
 -- Problem DSL
 ids idx = map (\x -> idx <> (BS.pack (show x))) [0..]
 
-allMd5 idx = map (encode . (BS.take 4 . hash)) (ids idx)
+allMd5 idx = parBufferChunks $ map (encode . (BS.take 4 . hash)) (ids idx)
 
 isChar x = "00000" `BS.isPrefixOf` x
 -- utils
