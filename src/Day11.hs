@@ -19,6 +19,8 @@ import qualified Data.Map as Map
 import Data.ByteString.Char8 (ByteString, split)
 import qualified Data.ByteString.Char8 as BS
 
+import Utils
+
 -- Parsing
 parser s = let l = BS.lines s
            in fmap parseLine l
@@ -112,21 +114,20 @@ getGenS = fmap (\(Generator s) -> s). filter (isGenerator)
 isGenerator (Generator _) = True
 isGenerator (Chip _) = False
 
-bfs :: [[Item]] -> Int
-bfs floors = go (Set.singleton (Status 0 floors)) (Set.singleton (Status 0 floors)) 0
-  where go toDo done currentDepth = let nextStatus = Set.fromList (mconcat (fmap possibleMoves2 (Set.toList toDo)))
-                                        keepNext = Set.difference nextStatus done
-                                    in traceShow (currentDepth, length toDo, length done) $ case find gameDone keepNext of
-                                         Just _ -> currentDepth
-                                         Nothing -> go keepNext (Set.union done keepNext) (currentDepth + 1)
+bfs' floors = let (_, _, d) = bfs stopCriterion (Status 0 floors) step in d
+  where stopCriterion todos done depth = case traceShow (depth, length todos, length done) $ find gameDone todos of
+          Just _ -> True
+          Nothing -> False
+        step = possibleMoves2
+
 
 gameDone (Status _ [[], [], [], _]) = True
 gameDone _ = False
 
-day code = bfs code + 1
+day code = bfs' code
 
 -- SECOND problem
-day' [a, b, c, d] = bfs [a', b, c, d] + 1
+day' [a, b, c, d] = bfs' [a', b, c, d]
   where a' = sort (a ++ [Generator el, Chip el, Generator dil, Chip dil])
           where el = "elerium"
                 dil = "dilithium"
