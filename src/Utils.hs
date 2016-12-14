@@ -7,6 +7,12 @@ import qualified Text.Megaparsec as P
 import qualified Data.Set as Set
 import Data.Set (Set)
 
+import Crypto.Hash.MD5 (hash)
+import Data.ByteString.Base16 (encode)
+
+import Control.Parallel.Strategies (parBuffer, using, rdeepseq)
+
+import Data.List.Split (chunksOf)
 
 -- So I can use it in the shell
 -- dayX <$$> content
@@ -56,3 +62,8 @@ bfs stopCriterion start stepFunction = go (Set.singleton start) (Set.empty) 0
                             okSteps = Set.difference newSteps visited
 
                         in go okSteps (Set.union todos visited) (depth + 1)
+
+md5 = encode . hash
+
+parBufferChunks l = let chunks = (chunksOf 4096 l)
+                    in mconcat chunks `using` parBuffer 20 rdeepseq

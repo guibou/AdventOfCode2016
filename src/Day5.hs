@@ -3,8 +3,6 @@ module Day5 where
 
 import Test.Hspec
 
-import Crypto.Hash.MD5
-
 import qualified Data.ByteString.Char8 as BS
 
 import Data.List (find)
@@ -13,12 +11,9 @@ import Data.Monoid ((<>))
 import Data.Char (ord)
 
 import Data.ByteString.Base16
+import Crypto.Hash.MD5
 
-import Control.Parallel.Strategies
-import Data.List.Split
-
-parBufferChunks l = let chunks = (chunksOf 4096 l)-- `using` parBuffer 20 rdeepseq
-                    in mconcat chunks
+import Utils (parBufferChunks)
 
 -- Problem DSL
 ids idx = map (\x -> idx <> (BS.pack (show x))) [0..]
