@@ -14,6 +14,8 @@ import Control.Parallel.Strategies (parBuffer, using, rdeepseq)
 
 import Data.List.Split (chunksOf)
 
+import qualified Data.ByteString.Char8 as BS
+
 -- So I can use it in the shell
 -- dayX <$$> content
 
@@ -44,7 +46,9 @@ nWrap d e = let idx = fromEnum e
                 m = (fromEnum (maxBound :: t)) + 1
             in toEnum ((idx + d) `mod` m)
 
-count x l = length (filter (==x) l)
+count x l = countIf (==x) l
+
+countIf p l = length (filter p l)
 
 
 -- | Wrapper around parse, to avoid the Right unpacking which is painful
@@ -64,6 +68,7 @@ bfs stopCriterion start stepFunction = go (Set.singleton start) (Set.empty) 0
                         in go okSteps (Set.union todos visited) (depth + 1)
 
 md5 = encode . hash
+md5s = BS.unpack . encode . hash . BS.pack
 
 parBufferChunks l = let chunks = (chunksOf 4096 l)
                     in mconcat chunks `using` parBuffer 20 rdeepseq
