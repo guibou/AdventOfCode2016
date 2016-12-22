@@ -109,6 +109,7 @@ day start ops = foldl (flip applyOp) start ops
 -- SECOND problem
 day' start ops = foldl (flip applyRev) start (reverse ops)
 
+day'2 start ops = head (filter (\x -> day x ops == start) (permutations start))
 -- tests and data
 
 -- comment out and add tests
@@ -118,6 +119,8 @@ test = hspec $ it "works" $ do
 
   day "abcdefgh" <$> content `shouldReturn` "dbfgaehc"
   day' "fbgdceah" <$> content `shouldReturn` "aghfcdeb"
+
+  day'2 "fbgdceah" <$> content `shouldReturn` "aghfcdeb"
 
 fileContent = readFile "content/day21"
 content = parser <$> fileContent
