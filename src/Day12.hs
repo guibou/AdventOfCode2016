@@ -22,9 +22,9 @@ instruction = P.choice [copy, dec, inc, jump]
 eval :: [Asm] -> Computer -> Computer
 eval l = go
   where
-        go m
-          | pc m < length l = go (evalAsm (l !! pc m) m)
-          | otherwise = m
+        go m = case l !? (pc m) of
+          Nothing -> m
+          Just instr -> go (evalAsm instr m)
 
 -- FIRST problem
 day code = get 'a' (eval code emptyComputer)

@@ -40,18 +40,15 @@ eval :: [AsmToggle] -> Computer -> Computer
 eval lNotOptimised = go
   where
         lOptimised = optim lNotOptimised
-        go m
-          | pc m < length lOptimised = let instr = lOptimised !! pc m
-                              in case instr of
+        go m = case lOptimised !? (pc m) of
+          Nothing -> m
+          Just instr -> case instr of
                                    BasicAsmToggle (Toggle roi) -> let delta0 = getROI roi (registers m)
                                                  in eval (toggleEval lNotOptimised (pc m + delta0)) (incPc m)
                                    BasicAsmToggle (BasicAsm asm) -> go $ evalAsm asm m
                                    BasicAsmToggle Skip -> go $ incPc m
                                    Add ra rb -> go $ incPc (modifyRegisters (add ra rb) m)
                                    AddMul ra rb rc -> go $ incPc (modifyRegisters (addmul ra rb rc) m)
-          | otherwise = m
-
-
 
 pattern INC :: Char -> AsmToggle
 pattern INC a = BasicAsm (Inc (Register a))

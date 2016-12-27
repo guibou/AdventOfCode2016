@@ -72,3 +72,10 @@ md5s = BS.unpack . encode . hash . BS.pack
 
 parBufferChunks l = let chunks = (chunksOf 4096 l)
                     in mconcat chunks `using` parBuffer 20 rdeepseq
+
+--
+
+(!?) :: [a] -> Int -> Maybe a
+l !? idx
+  | idx < length l = Just (l !! idx)
+  | otherwise = Nothing

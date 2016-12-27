@@ -32,12 +32,12 @@ data AsmOut = BasicAsm Asm | Out RegisterOrInt deriving (Show)
 eval :: [AsmOut] -> Computer -> [Int]
 eval l = go
   where
-        go m
-          | pc m < length l = let (val, m') = evalAsmOut (l !! pc m) m
-                              in case val of
-                                   Just v -> v : go m'
-                                   Nothing -> go m'
-          | otherwise = []
+        go m = case l !? (pc m) of
+          Nothing -> []
+          Just instr -> let (val, m') = evalAsmOut instr m
+                        in case val of
+                             Just v -> v : go m'
+                             Nothing -> go m'
 
 evalAsmOut (BasicAsm asm) computer = (Nothing, evalAsm asm computer)
 evalAsmOut (Out roi) computer = (Just (getROI roi m), incPc computer)
