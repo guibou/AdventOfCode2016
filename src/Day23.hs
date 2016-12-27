@@ -9,46 +9,64 @@ import Test.Hspec
 import qualified Text.Megaparsec.String as P
 import qualified Text.Megaparsec as P
 
+import Data.Functor (($>))
 import Utils
 
 import qualified Data.Map.Strict as Map
-import Data.Map (Map)
 
 import Debug.Trace
 
 import AsmBunny
 
 -- Parsing
-parser :: P.Parser [Asm]
+parser :: P.Parser [AsmToggle]
 parser = instruction `P.sepBy` P.string "\n"
 
-instruction = P.choice [copy, dec, inc, jump, toggle]
+instruction = P.choice (toggle : map (BasicAsm <$>) [copy, dec, inc, jump])
+
+toggle = (P.string "tgl" $> Toggle) <*> parseRegisterOrInt
 
 -- Input DSL
-eval :: [Asm] -> Map Register Int -> Map Register Int
-eval l'  m = eval2 l' m 0
+data AsmToggle = BasicAsm Asm
+               | Toggle RegisterOrInt
+               | Skip
+               deriving (Show)
+data AsmToggleOptimised = BasicAsmToggle AsmToggle
+                        | Add Register Register
+                        | AddMul Register Register Register
+               deriving (Show)
+
+eval :: [AsmToggle] -> Computer -> Computer
+eval lNotOptimised = go
   where
-        eval2 l' m offset = go (optim l') m offset
-        go l m offset
-          | offset < length l = case (l !! offset) of
-              Inc r -> go l (increment r m) (offset + 1)
-              Dec r -> go l (decrement r m) (offset + 1)
-              Copy a b -> go l (cp a b m) (offset + 1)
-              Jump v doffset -> if (getROI v m) /= 0
-                                then go l m (offset + getROI doffset m)
-                                else go l m (offset + 1)
-              Toggle roi -> let deltaO = getROI roi m
-                            in eval2 (toggleEval l (offset + deltaO)) m (offset + 1)
-              Skip -> go l m (offset + 1)
-              Add ra rb -> go l (add ra rb m) (offset + 1)
-              AddMul ra rb rc -> go l (addmul ra rb rc m) (offset + 1)
+        lOptimised = optim lNotOptimised
+        go m
+          | pc m < length lOptimised = let instr = lOptimised !! pc m
+                              in case instr of
+                                   BasicAsmToggle (Toggle roi) -> let delta0 = getROI roi (registers m)
+                                                 in eval (toggleEval lNotOptimised (pc m + delta0)) (incPc m)
+                                   BasicAsmToggle (BasicAsm asm) -> go $ evalAsm asm m
+                                   BasicAsmToggle Skip -> go $ incPc m
+                                   Add ra rb -> go $ incPc (modifyRegisters (add ra rb) m)
+                                   AddMul ra rb rc -> go $ incPc (modifyRegisters (addmul ra rb rc) m)
           | otherwise = m
 
-pattern INC a = Inc (Register a)
-pattern DEC a = Dec (Register a)
-pattern JNZ r o = Jump (RegisterRI (Register r)) (IntRI o)
-pattern CPY a b = Copy (RegisterRI (Register a)) (Register b)
-pattern CLEAR r = Copy (IntRI 0) (Register r)
+
+
+pattern INC :: Char -> AsmToggle
+pattern INC a = BasicAsm (Inc (Register a))
+
+pattern DEC :: Char -> AsmToggle
+pattern DEC a = BasicAsm (Dec (Register a))
+
+pattern JNZ :: Char -> Int -> AsmToggle
+pattern JNZ r o = BasicAsm (Jump (RegisterRI (Register r)) (IntRI o))
+
+pattern CPY :: Char -> Char -> AsmToggle
+pattern CPY a b = BasicAsm (Copy (RegisterRI (Register a)) (Register b))
+
+pattern CLEAR :: Char -> AsmToggleOptimised
+pattern CLEAR r = BasicAsmToggle (BasicAsm (Copy (IntRI 0) (Register r)))
 
 
 {-
@@ -57,12 +75,16 @@ d = 0;
 c = 0;
 -}
 
-optim :: [Asm] -> [Asm]
-optim (CPY 'b' 'c' : INC 'a' : DEC 'c' : JNZ 'c' (-2) : DEC 'd' : JNZ 'd' (-5) : xs) = AddMul (Register 'a') (Register 'b') (Register 'd') : CLEAR 'd' : CLEAR 'c' : Skip : Skip : Skip : optim xs
-optim (INC 'a': DEC 'c': JNZ 'c' (-2) : xs) = Add (Register 'a') (Register 'c') : CLEAR 'c' : Skip : optim xs
-optim (DEC 'd': INC 'c': JNZ 'd' (-2) : xs) = Add (Register 'c') (Register 'd') : CLEAR 'd' : Skip : optim xs
-optim (INC 'a': INC 'd': JNZ 'd' (-2) : xs) = Add (Register 'a') (Register 'd') : CLEAR 'd' : Skip : optim xs
-optim (x:xs) = x : optim xs
+skip = BasicAsmToggle Skip
+
+nullOptim = map BasicAsmToggle
+
+optim :: [AsmToggle] -> [AsmToggleOptimised]
+optim (CPY 'b' 'c' : INC 'a' : DEC 'c' : JNZ 'c' (-2) : DEC 'd' : JNZ 'd' (-5) : xs) = AddMul (Register 'a') (Register 'b') (Register 'd') : CLEAR 'd' : CLEAR 'c' : skip : skip : skip : optim xs
+optim (INC 'a': DEC 'c': JNZ 'c' (-2) : xs) = Add (Register 'a') (Register 'c') : CLEAR 'c' : skip : optim xs
+optim (DEC 'd': INC 'c': JNZ 'd' (-2) : xs) = Add (Register 'c') (Register 'd') : CLEAR 'd' : skip : optim xs
+optim (INC 'a': INC 'd': JNZ 'd' (-2) : xs) = Add (Register 'a') (Register 'd') : CLEAR 'd' : skip : optim xs
+optim (x:xs) = BasicAsmToggle x : optim xs
 optim [] = []
 
 -- utils
@@ -76,12 +98,12 @@ modify l offset f
 
                 in previous ++ [traceShow (item, f item) (f item)] ++ next
 
-toggle' (Inc r) = Dec r
-toggle' (Dec r) = Inc r
-toggle' (Toggle (RegisterRI r)) = Inc r
+toggle' (BasicAsm (Inc r)) = BasicAsm (Dec r)
+toggle' (BasicAsm (Dec r)) = BasicAsm (Inc r)
+toggle' (BasicAsm (Jump a (RegisterRI b))) = BasicAsm (Copy a b)
+toggle' (BasicAsm (Copy a b)) = BasicAsm (Jump a (RegisterRI b))
+toggle' (Toggle (RegisterRI r)) = BasicAsm (Inc r)
 toggle' (Toggle (IntRI _)) = Skip
-toggle' (Jump a (RegisterRI b)) = Copy a b
-toggle' (Copy a b) = Jump a (RegisterRI b)
 toggle' Skip = Skip
 
 add ra rb m = Map.insert ra (getRegister ra m + getRegister rb m) m
@@ -94,10 +116,10 @@ addmul ra rb rc m = Map.insert ra (getRegister rb m * getRegister rc m) m
 
 
 -- FIRST problem
-day code = get 'a' (eval code (Map.singleton (Register 'a') 7))
+day code = get 'a' (eval code (computerWithRegisters [(Register 'a', 7)]))
 
 -- SECOND problem
-day' code = get 'a' (eval code (Map.singleton (Register 'a') 12))
+day' code = get 'a' (eval code (computerWithRegisters [(Register 'a', 12)]))
 
 -- tests and data
 

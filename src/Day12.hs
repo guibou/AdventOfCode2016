@@ -9,10 +9,6 @@ import qualified Text.Megaparsec.String as P
 import qualified Text.Megaparsec as P
 
 import Utils
-import Data.Functor (($>))
-
-import qualified Data.Map as Map
-import Data.Map (Map)
 
 import AsmBunny
 
@@ -23,37 +19,31 @@ parser = instruction `P.sepBy` P.string "\n"
 instruction = P.choice [copy, dec, inc, jump]
 
 -- Problem DSL
-eval :: [Asm] -> Map Register Int -> Map Register Int
-eval l m = go m 0
+eval :: [Asm] -> Computer -> Computer
+eval l = go
   where
-        go m offset
-          | offset < length l = case (l !! offset) of
-              Inc r -> go (increment r m) (offset + 1)
-              Dec r -> go (decrement r m) (offset + 1)
-              Copy a b -> go (cp a b m) (offset + 1)
-              Jump v doffset -> if (getROI v m) /= 0
-                                then go m (offset + getROI doffset m)
-                                else go m (offset + 1)
+        go m
+          | pc m < length l = go (evalAsm (l !! pc m) m)
           | otherwise = m
 
 -- FIRST problem
-day code = get 'a' (eval code Map.empty)
+day code = get 'a' (eval code emptyComputer)
 
 -- SECOND problem
-day' code = get 'a' (eval code (Map.singleton (Register 'c') 1))
+day' code = get 'a' (eval code (computerWithRegisters [((Register 'c'), 1)]))
 
 -- tests and data
 
 -- comment out and add tests
 test = hspec $ it "works" $ do
-  day (parse parser exampleCode) `shouldBe` 42
+  day exampleCode `shouldBe` 42
   day <$> content `shouldReturn` 318007
   day' <$> content `shouldReturn` 9227661
 
 fileContent = readFile "content/day12"
 content = parse parser <$> fileContent
 
-exampleCode = "\
+exampleCode = parse parser "\
 \cpy 41 a\n\
 \inc a\n\
 \inc a\n\

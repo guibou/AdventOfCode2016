@@ -11,45 +11,46 @@ import qualified Text.Megaparsec as P
 
 import Utils
 
-import qualified Data.Map.Strict as Map
-import Data.Map (Map)
-
 import Data.List (find)
+import Data.Functor (($>))
 
 import AsmBunny
 
 -- Parsing
-parser :: P.Parser [Asm]
+parser :: P.Parser [AsmOut]
 parser = instruction `P.sepBy` P.string "\n"
 
-instruction = P.choice [copy, dec, inc, jump, out]
+instruction = P.choice (out: map (BasicAsm <$>) [copy, dec, inc, jump])
+
+out = (P.string "out" $> Out) <*> parseRegisterOrInt
 
 -- Input DSL
+data AsmOut = BasicAsm Asm | Out RegisterOrInt deriving (Show)
+
 
 -- Input DSL
-eval :: [Asm] -> Map Register Int -> [Int]
-eval l  m = go m 0
+eval :: [AsmOut] -> Computer -> [Int]
+eval l = go
   where
-        go :: Map Register Int -> Int -> [Int]
-        go m offset
-          | offset < length l = case (l !! offset) of
-              Inc r -> go (increment r m) (offset + 1)
-              Dec r -> go (decrement r m) (offset + 1)
-              Copy a b -> go (cp a b m) (offset + 1)
-              Jump v doffset -> if (getROI v m) /= 0
-                                then go m (offset + getROI doffset m)
-                                else go m (offset + 1)
-              Out roi -> getROI roi m : go m (offset + 1)
+        go m
+          | pc m < length l = let (val, m') = evalAsmOut (l !! pc m) m
+                              in case val of
+                                   Just v -> v : go m'
+                                   Nothing -> go m'
           | otherwise = []
+
+evalAsmOut (BasicAsm asm) computer = (Nothing, evalAsm asm computer)
+evalAsmOut (Out roi) computer = (Just (getROI roi m), incPc computer)
+  where m = registers computer
 
 -- Problem DSL
 
 
 -- utils
-blork n content = eval content (Map.singleton (Register 'a') n)
+blork n code = eval code (computerWithRegisters [(Register 'a', n)])
 
 -- FIRST problem
-day content = find (\x -> take 100 (blork x content) == take 100 (cycle [0, 1])) [0..]
+day code = find (\x -> take 100 (blork x code) == take 100 (cycle [0, 1])) [0..]
 
 test = hspec $ it "works" $ do
   day <$> content `shouldReturn` (Just 175)
