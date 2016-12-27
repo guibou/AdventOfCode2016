@@ -10,12 +10,13 @@ import qualified Text.Megaparsec.String as P
 import qualified Text.Megaparsec as P
 
 import Utils
-import Data.Functor (($>))
 
 import qualified Data.Map.Strict as Map
 import Data.Map (Map)
 
 import Data.List (find)
+
+import AsmBunny
 
 -- Parsing
 parser :: P.Parser [Asm]
@@ -23,32 +24,7 @@ parser = instruction `P.sepBy` P.string "\n"
 
 instruction = P.choice [copy, dec, inc, jump, out]
 
-copy = (P.string "cpy" $> Copy) <*> parseRegisterOrInt <*> parseRegister
-inc = (P.string "inc" $> Inc) <*> parseRegister
-dec = (P.string "dec" $> Dec) <*> parseRegister
-jump = (P.string "jnz" $> Jump) <*> parseRegisterOrInt <*> parseRegisterOrInt
-out = (P.string "out" $> Out) <*> parseRegisterOrInt
-
-parseRegisterOrInt = P.choice [P.try (RegisterRI <$> parseRegister),
-                               IntRI <$> parseInt]
-
-parseInt = do
-  _ <- P.string " "
-  minus <- P.optional (P.string "-")
-
-  v <- read <$> P.many (P.oneOf "0123456789")
-
-  return $ case minus of
-    Just _ -> -v
-    Nothing -> v
-
-parseRegister = P.string " " *> (Register <$> P.oneOf ['a' .. 'z'])
-
-
 -- Input DSL
-data Register = Register Char deriving (Show, Ord, Eq)
-data Asm = Copy RegisterOrInt Register | Inc Register | Dec Register | Jump RegisterOrInt RegisterOrInt | Out RegisterOrInt deriving (Show)
-data RegisterOrInt = RegisterRI Register | IntRI Int deriving (Show)
 
 -- Input DSL
 eval :: [Asm] -> Map Register Int -> [Int]
@@ -65,23 +41,6 @@ eval l  m = go m 0
                                 else go m (offset + 1)
               Out roi -> getROI roi m : go m (offset + 1)
           | otherwise = []
-
-add ra rb m = Map.insert ra (getRegister ra m + getRegister rb m) m
-addmul ra rb rc m = Map.insert ra (getRegister rb m * getRegister rc m) m
-
-increment r m = Map.insert r (getRegister r m + 1) m
-
-decrement r m = Map.insert r (getRegister r m - 1) m
-
-cp v r m = Map.insert r (getROI v m) m
-
-getROI v m = case v of
-  RegisterRI r -> getRegister r m
-  IntRI i -> i
-
-getRegister r m = Map.findWithDefault 0 r m
-
-getA m = m Map.! (Register 'a')
 
 -- Problem DSL
 

@@ -10,45 +10,19 @@ import qualified Text.Megaparsec.String as P
 import qualified Text.Megaparsec as P
 
 import Utils
-import Data.Functor (($>))
 
 import qualified Data.Map.Strict as Map
 import Data.Map (Map)
 
 import Debug.Trace
 
+import AsmBunny
+
 -- Parsing
 parser :: P.Parser [Asm]
 parser = instruction `P.sepBy` P.string "\n"
 
 instruction = P.choice [copy, dec, inc, jump, toggle]
-
-copy = (P.string "cpy" $> Copy) <*> parseRegisterOrInt <*> parseRegister
-inc = (P.string "inc" $> Inc) <*> parseRegister
-dec = (P.string "dec" $> Dec) <*> parseRegister
-jump = (P.string "jnz" $> Jump) <*> parseRegisterOrInt <*> parseRegisterOrInt
-toggle = (P.string "tgl" $> Toggle) <*> parseRegisterOrInt
-
-parseRegisterOrInt = P.choice [P.try (RegisterRI <$> parseRegister),
-                               IntRI <$> parseInt]
-
-parseInt = do
-  _ <- P.string " "
-  minus <- P.optional (P.string "-")
-
-  v <- read <$> P.many (P.oneOf "0123456789")
-
-  return $ case minus of
-    Just _ -> -v
-    Nothing -> v
-
-parseRegister = P.string " " *> (Register <$> P.oneOf ['a' .. 'z'])
-
-
--- Input DSL
-data Register = Register Char deriving (Show, Ord, Eq)
-data Asm = Copy RegisterOrInt Register | Inc Register | Dec Register | Jump RegisterOrInt RegisterOrInt | Toggle RegisterOrInt | Skip | Add Register Register | AddMul Register Register Register deriving (Show)
-data RegisterOrInt = RegisterRI Register | IntRI Int deriving (Show)
 
 -- Input DSL
 eval :: [Asm] -> Map Register Int -> Map Register Int
@@ -113,20 +87,6 @@ toggle' Skip = Skip
 add ra rb m = Map.insert ra (getRegister ra m + getRegister rb m) m
 addmul ra rb rc m = Map.insert ra (getRegister rb m * getRegister rc m) m
 
-increment r m = Map.insert r (getRegister r m + 1) m
-
-decrement r m = Map.insert r (getRegister r m - 1) m
-
-cp v r m = Map.insert r (getROI v m) m
-
-getROI v m = case v of
-  RegisterRI r -> getRegister r m
-  IntRI i -> i
-
-getRegister r m = Map.findWithDefault 0 r m
-
-getA m = m Map.! (Register 'a')
-
 -- Problem DSL
 
 
@@ -134,10 +94,10 @@ getA m = m Map.! (Register 'a')
 
 
 -- FIRST problem
-day code = getA (eval code (Map.singleton (Register 'a') 7))
+day code = get 'a' (eval code (Map.singleton (Register 'a') 7))
 
 -- SECOND problem
-day' code = getA (eval code (Map.singleton (Register 'a') 12))
+day' code = get 'a' (eval code (Map.singleton (Register 'a') 12))
 
 -- tests and data
 
